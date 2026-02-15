@@ -77,3 +77,21 @@ If you want to skip the pre-commit hooks on a specific commit, you can use the `
 ```bash
 git commit --no-verify -m "my_commit"
 ```
+
+## Environment variables
+
+Create a `.env` file and populate the following environment variables found in `.env_template` with your OpenAI and Qdrant credentials:
+
+## Data folder
+
+The data folder contains the following subfolders:
+
+* `raw`. Files in regular extensions, like PDF.
+* `interm`. Converted files to markdown and JSON.
+* `processed`. Chunks of several chunking experiments in JSON format.
+
+To create this folder structure, you can run the following command:
+
+```bash
+> python src/utils.py
+```
