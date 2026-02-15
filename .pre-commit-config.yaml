@@ -1,0 +1,96 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    -   id: check-added-large-files
+        args: ["--maxkb=2048"]
+    -   id: check-ast
+    -   id: check-builtin-literals
+    -   id: fix-byte-order-marker
+    -   id: check-case-conflict
+    -   id: check-docstring-first
+    -   id: check-executables-have-shebangs
+    -   id: check-json
+    -   id: check-merge-conflict
+    -   id: check-symlinks
+    -   id: check-xml
+    -   id: check-yaml
+        args: [--unsafe]
+    -   id: debug-statements
+    -   id: detect-private-key
+    -   id: double-quote-string-fixer
+    -   id: end-of-file-fixer
+    -   id: mixed-line-ending
+        args: ["--fix=lf"]
+    -   id: name-tests-test
+    -   id: pretty-format-json
+        args: [--autofix]
+        exclude: ".*\\.ipynb$|config\\.json"
+    -   id: requirements-txt-fixer
+    -   id: sort-simple-yaml
+    -   id: trailing-whitespace
+-   repo: https://github.com/psf/black
+    rev: 26.1.0
+    hooks:
+    -   id: black
+# Sort imports
+-   repo: https://github.com/pycqa/isort
+    rev: 7.0.0  # Use the latest stable version
+    hooks:
+    -   id: isort
+        name: isort (python)
+        args: ["--profile", "black"]  # Makes isort compatible with black
+# Automatic linter for general purpose code style enforcement
+-   repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.15.0 # Ruff is in active development so make sure to pre-commit autoupdate
+    hooks:
+    -   id: ruff
+        args:
+            - --fix
+            - --exit-non-zero-on-fix
+            - --line-length=120
+        exclude: "analysis/.*"
+# Format notebooks with similar guidelines as scripts
+-   repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.9.1
+    hooks:
+    -   id: nbqa-black
+        entry: nbqa black .
+        language: python
+        types_or: [ jupyter ]
+        args:
+            - --line-length=120
+# Remove all output from notebooks
+-   repo: https://github.com/kynan/nbstripout
+    rev: 0.9.0
+    hooks:
+    -   id: nbstripout
+# Automatically convert %-strings into f-strings
+-   repo: https://github.com/ikamensh/flynt/
+    rev: 1.0.6
+    hooks:
+    -   id: flynt
+# Format markdown files in documentation
+-   repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.47.0
+    hooks:
+    -   id: markdownlint
+        args: [--config, .markdownlint.yaml]
+# Format code in documentation
+-   repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.20.0
+    hooks:
+    -   id: blacken-docs
+        additional_dependencies: [black==26.1.0]
+# Detect secrets
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+    -   id: detect-secrets
+        exclude: package.lock.json
+# Replace fix-encoding-pragma
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+    -   id: pyupgrade
+        args: ["--py311-plus"]
