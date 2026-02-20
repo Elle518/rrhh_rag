@@ -151,3 +151,6 @@ __marimo__/
 data/
 logs/
 output/
+
+# MacOS
+.DS_Store
