@@ -40,6 +40,20 @@ For VSCode notebooks extension install:
 > pip install ipykernel ipywidgets jupyter
 ```
 
+Install Docling for MacOS macOS x86_64:
+
+```bash
+> pip install docling "numpy<2.0.0"
+```
+
+Source: <https://docling-project.github.io/docling/faq/#is-macos-x86_64-supported>
+
+For other platforms:
+
+```bash
+> pip install docling
+```
+
 ## Using Git Hooks
 
 This repository uses `pre-commit` hooks to format code before each commit. You need to install and configure these hooks before making changes to the repository.
