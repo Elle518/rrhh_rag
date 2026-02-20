@@ -64,6 +64,12 @@ Once you've created/cloned the repository, run the following command to configur
 > pip install pre-commit
 ```
 
+To install the hooks, run:
+
+```bash
+> pre-commit install
+```
+
 To validate, before pushing changes to the repository, run:
 
 ```bash
