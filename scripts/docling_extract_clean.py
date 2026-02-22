@@ -12,24 +12,24 @@ Usage examples
 # Remove pictures + furniture + headers + footers (default) and save JSON
 python -m scripts.docling_extract_clean \
     --input-dir data/raw \
-    --output-dir data/interim/docling
+    --output-dir data/interim/docling/raw
 
 # Also export Markdown
 python -m scripts.docling_extract_clean \
     --input-dir data/raw \
-    --output-dir data/interim/docling \
+    --output-dir data/interim/docling/raw \
     --export-markdown
 
 # Keep furniture, but still remove pictures/headers/footers
 python -m scripts.docling_extract_clean \
     --input-dir data/raw \
-    --output-dir data/interim/docling \
+    --output-dir data/interim/docling/raw \
     --keep-furniture
 
 # Keep page headers and footers
 python -m scripts.docling_extract_clean \
     --input-dir data/raw \
-    --output-dir data/interim/docling \
+    --output-dir data/interim/docling/raw \
     --keep-page-headers \
     --keep-page-footers
 """
