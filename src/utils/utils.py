@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from logging_utils import setup_logging
+from src.utils.logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
