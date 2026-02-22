@@ -1,7 +1,8 @@
 import logging
 import os
-import sys
 from pathlib import Path
+
+from logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -40,37 +41,9 @@ def create_folders():
     path_data_processed.mkdir(parents=True, exist_ok=True)
 
 
-# LOGS
-def setup_logging(level=logging.INFO):
-    """
-    Configure the root logger to write formatted logs to stdout.
-
-    The configuration:
-      - Attaches a `logging.StreamHandler` pointing to `sys.stdout`.
-      - Uses a timestamped format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s".
-      - Clears any existing handlers on the root logger to avoid duplicate logs.
-
-    Args:
-        level: Logging level for the root logger (e.g., `logging.INFO`, `logging.DEBUG`).
-
-    Returns:
-        None
-    """
-    handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    handler.setFormatter(formatter)
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(level)
-    root_logger.handlers.clear()
-    root_logger.addHandler(handler)
-
-
 if __name__ == "__main__":
 
-    setup_logging()
+    setup_logging(log_dir=path_logs, log_name="info.log")
+
     create_folders()
     logger.info("Utils module executed successfully!")
