@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rrhh-rag"
+version = "0.1.0"
+description = "App RAG de RRHH"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+packages = ["src"]
