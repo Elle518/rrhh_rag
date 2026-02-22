@@ -14,20 +14,20 @@ Output:
 Usage example:
     # Basic usage with defaults and merged output
     python -m scripts.docling_chunk_jsons \
-        --input-dir data/interim/docling \
+        --input-dir data/interim/docling/raw \
         --output-dir data/processed/chunks \
         --write-merged
 
     # Modified arguments
     python -m scripts.docling_chunk_jsons \
-        --input-dir data/interim/docling \
+        --input-dir data/interim/docling/raw \
         --output-dir data/processed/chunks \
         --pattern "*_final.json" \
         --max-tokens 512 \
 
     # Disable raw chunk metadata
     python -m scripts.docling_chunk_jsons \
-        --input-dir data/interim/docling \
+        --input-dir data/interim/docling/raw \
         --output-dir data/processed/chunks \
         --no-chunk-meta
 """
@@ -82,8 +82,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=2048,
-        help="Max tokens per chunk for the OpenAI tokenizer wrapper (default: 2048).",
+        default=512,
+        help="Max tokens per chunk for the OpenAI tokenizer wrapper (default: 512).",
     )
     parser.add_argument(
         "--write-merged",
