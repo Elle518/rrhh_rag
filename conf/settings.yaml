@@ -2,8 +2,6 @@ llm_workhorse: gpt-4.1-mini-2025-04-14
 llm_flagship: gpt-4.1-2025-04-14
 embeddings: text-embedding-3-small
 embeddings_dim: 1536
-vdb_index: space
+vdb_index: rrhh_rag_chuncks
 retrieve_k: 3
-name_dense: dense
-name_sparse: sparse
-model_sparse: "Qdrant/bm25"
+rag_api_url: http://localhost:8000
