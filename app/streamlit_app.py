@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+
+"""
+Streamlit app for RAG-based Q&A about human resources topics. The app allows users to input questions, which are sent to a FastAPI backend that performs retrieval from a vector database and generates answers with grounding information.
+
+Usage:
+
+    1. Start the FastAPI backend (app/api.py)
+
+    > uvicorn app.api:app --reload --host 0.0.0.0 --port 8000
+
+    2. Run this Streamlit app
+
+    > streamlit run app/streamlit_app.py
+"""
+
 import os
 from pathlib import Path
 
