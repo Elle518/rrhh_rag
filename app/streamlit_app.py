@@ -14,16 +14,28 @@ Usage:
     > streamlit run app/streamlit_app.py
 """
 
-import os
+from __future__ import annotations
+
+import logging
 from pathlib import Path
 
 import requests
 import streamlit as st
 from dotenv import load_dotenv
 
+from src import conf
+
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
-API_URL = os.getenv("RAG_API_URL")
+# Configuration
+try:
+    conf_settings = conf.load(file="settings.yaml")
+except Exception as e:
+    logger.error("Failed to load conf files: %s", e)
+
+API_URL = conf_settings.rag_api_url
 
 BASE_DIR = Path(__file__).resolve().parent
 LOGO_PATH = BASE_DIR / "assets" / "qs_logo.png"
@@ -34,7 +46,7 @@ st.set_page_config(page_title="Chat de RR.HH.", page_icon="💬", layout="wide")
 st.title("💬 Chat de RR.HH.")
 st.caption("Pregunta lo que necesites sobre tu convenio laboral.")
 
-# Estado de sesión
+# Sesión state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -44,7 +56,7 @@ if "top_k" not in st.session_state:
 # Sidebar
 with st.sidebar:
     st.image(
-        "/Users/elle/Library/Mobile Documents/com~apple~CloudDocs/Data Science/NLP/Proyectos/rrhh_rag/app/assets/qs_logo.png",
+        LOGO_PATH,
         use_container_width=True,
     )
     st.header("Configuración")
@@ -59,12 +71,12 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# Render historial
+# Render history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-        # Mostrar grounding solo en mensajes del asistente
+        # Show grounding only in assistant messages
         if msg["role"] == "assistant" and msg.get("grounding"):
             with st.expander("Ver grounding / fuentes"):
                 for g in msg["grounding"]:
@@ -82,12 +94,12 @@ for msg in st.session_state.messages:
 # Input chat
 prompt = st.chat_input("Escribe tu pregunta...")
 if prompt:
-    # Mensaje usuario
+    # User message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Llamada backend
+    # Backend call
     with st.chat_message("assistant"):
         with st.spinner("Buscando y generando respuesta..."):
             try:
@@ -118,7 +130,7 @@ if prompt:
                             st.code(g.get("text", ""), language=None)
                             st.markdown("---")
 
-                # Guardar en historial
+                # Save to history
                 st.session_state.messages.append(
                     {
                         "role": "assistant",
