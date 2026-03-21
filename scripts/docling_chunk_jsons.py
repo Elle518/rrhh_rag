@@ -46,7 +46,7 @@ from docling.datamodel.document import DoclingDocument
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.transforms.chunker.tokenizer.openai import OpenAITokenizer
 
-from src.utils.logging_utils import setup_logging
+from rrhh_rag.utils.logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
