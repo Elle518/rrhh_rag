@@ -150,6 +150,12 @@ To create this folder structure, you can run the following command:
     > python -m scripts.ingest_chunks_to_qdrant
     ```
 
+4. Test the RAG pipeline with a sample question:
+
+    ```bash
+    > python -m scripts.query_vdb.py
+    ```
+
 ## Launch the app
 
 1. Start the FastAPI backend (app/api.py)
