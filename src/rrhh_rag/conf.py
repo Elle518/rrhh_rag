@@ -5,7 +5,7 @@ This module provides a way to load YAML configuration files into Pydantic models
 and is designed to be easily extendable by adding new config files and models.
 
 Usage:
-    from src import conf
+    from rrhh_rag import conf
 
     # Load settings configuration
     settings_conf = conf.load(file=conf.ConfigFiles.SETTINGS.value)
@@ -26,7 +26,7 @@ from pathlib import Path
 import yaml
 from pydantic_settings import BaseSettings
 
-from src.utils import utils
+from rrhh_rag.utils import utils
 
 logger = logging.getLogger(__name__)
 
