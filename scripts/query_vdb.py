@@ -1,30 +1,61 @@
+#!/usr/bin/env python3
+
+"""
+Query a Qdrant vector database with OpenAI embeddings and return grounded answers.
+
+Input:
+    Natural-language user query and retrieval settings from the project configuration.
+
+Output:
+    Retrieved vector search hits from Qdrant, an LLM-generated answer grounded on the
+    recovered chunks, and structured citation metadata for traceability.
+
+Usage example:
+    # Run the example query defined in the script
+    python -m scripts.query_vdb
+"""
+
+from __future__ import annotations
+
+import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
 from qdrant_client import QdrantClient
 
+from rrhh_rag import conf
+from rrhh_rag.utils.logging_utils import setup_logging
+
+logger = logging.getLogger(__name__)
+
 # =========================
 # Config
 # =========================
-QDRANT_COLLECTION = "rrhh_rag_chuncks"
+try:
+    conf_settings = conf.load(file="settings.yaml")
+except Exception as e:
+    logger.error("Failed to load conf files: %s", e)
 
-EMBEDDING_MODEL = "text-embedding-3-small"
-CHAT_MODEL = "gpt-4.1-mini"  # puedes cambiarlo por el que uses
-EMBEDDING_DIMENSIONS = None  # None = dimensión por defecto
-
-TOP_K = 5
+QDRANT_COLLECTION = conf_settings.vdb_index
+EMBEDDING_MODEL = conf_settings.embeddings
+EMBEDDING_DIMENSIONS = conf_settings.embeddings_dim
+CHAT_MODEL = conf_settings.llm_workhorse
+TOP_K = conf_settings.retrieve_k
 
 load_dotenv()
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+
+
 # =========================
 # Clients
 # =========================
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
-
 
 qdrant = QdrantClient(
     url=QDRANT_URL,
@@ -36,6 +67,8 @@ qdrant = QdrantClient(
 # Core functions
 # =========================
 def embed_query(query: str) -> list[float]:
+    """Generates an embedding vector for a query string using the
+    configured OpenAI embedding model."""
     kwargs = {
         "model": EMBEDDING_MODEL,
         "input": query,
@@ -48,12 +81,13 @@ def embed_query(query: str) -> list[float]:
 
 
 def search_qdrant(query: str, top_k: int = TOP_K) -> list[dict[str, Any]]:
+    """Embeds the query, searches Qdrant for the top matching
+    chunks, and returns their scores and payload metadata."""
     query_vector = embed_query(query)
 
-    # Compat con versiones recientes del cliente Qdrant
     resp = qdrant.query_points(
         collection_name=QDRANT_COLLECTION,
-        query=query_vector,  # <-- antes query_vector=
+        query=query_vector,
         limit=top_k,
         with_payload=True,
         with_vectors=False,
@@ -73,9 +107,9 @@ def search_qdrant(query: str, top_k: int = TOP_K) -> list[dict[str, Any]]:
                 "chunk_index": payload.get("chunk_index"),
                 "page_numbers": payload.get("page_numbers", []),
                 "doc_item_refs": payload.get("doc_item_refs", []),
-                # exacto para grounding
+                # Exact for grounding
                 "text": payload.get("text", ""),
-                # contextualizado (opcional, debug)
+                # Contextualized (optional, debug)
                 "text_contextualized": payload.get("text_contextualized", ""),
             }
         )
@@ -84,8 +118,9 @@ def search_qdrant(query: str, top_k: int = TOP_K) -> list[dict[str, Any]]:
 
 def build_context_for_llm(hits: list[dict[str, Any]]) -> str:
     """
-    Construye contexto con fragmentos exactos + metadatos.
-    Se incluye un ID de cita interno [C1], [C2], ... para luego mapear grounding.
+    Build context using exact snippets and metadata. Include an
+    internal citation ID [C1], [C2], ... for subsequent grounding
+    mapping.
     """
     parts = []
     for i, h in enumerate(hits, start=1):
@@ -103,6 +138,7 @@ def build_context_for_llm(hits: list[dict[str, Any]]) -> str:
 
 
 def answer_with_grounding(query: str, top_k: int = TOP_K) -> dict[str, Any]:
+    """Retrieves relevant chunks from Qdrant and uses them to generate a grounded answer with structured citations."""
     hits = search_qdrant(query=query, top_k=top_k)
 
     if not hits:
@@ -138,7 +174,7 @@ def answer_with_grounding(query: str, top_k: int = TOP_K) -> dict[str, Any]:
 
     answer = chat_resp.choices[0].message.content or ""
 
-    # Grounding estructurado (fragmentos exactos recuperados)
+    # Structured grounding (exact fragments recovered)
     grounding = []
     for i, h in enumerate(hits, start=1):
         grounding.append(
@@ -151,7 +187,7 @@ def answer_with_grounding(query: str, top_k: int = TOP_K) -> dict[str, Any]:
                 "chunk_index": h.get("chunk_index"),
                 "page_numbers": h.get("page_numbers", []),
                 "doc_item_refs": h.get("doc_item_refs", []),
-                # Fragmento exacto para mostrar al usuario
+                # Exact fragment for user display
                 "text": h.get("text", ""),
             }
         )
@@ -166,6 +202,10 @@ def answer_with_grounding(query: str, top_k: int = TOP_K) -> dict[str, Any]:
 # Example usage
 # =========================
 if __name__ == "__main__":
+
+    log_dir = Path("logs")
+    setup_logging(log_dir=log_dir, log_name="query_vdb.log")
+
     query = "¿Cuántos días me corresponden por fallecimiento de familiar?"
     result = answer_with_grounding(query, top_k=5)
 
