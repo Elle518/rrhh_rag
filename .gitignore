@@ -155,5 +155,6 @@ output/
 # MacOS
 .DS_Store
 
-# Private files
+# Private files and folders
 TODO.md
+deprecated/
