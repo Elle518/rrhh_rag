@@ -1,7 +1,9 @@
 llm_workhorse: gpt-4.1-mini-2025-04-14
 llm_flagship: gpt-4.1-2025-04-14
+jsonl_path: data/processed/chunks/all_chunks.jsonl
 embeddings: text-embedding-3-small
 embeddings_dim: 1536
 vdb_index: rrhh_rag_chuncks
+batch_size: 10
 retrieve_k: 3
 rag_api_url: http://localhost:8000
