@@ -154,3 +154,6 @@ output/
 
 # MacOS
 .DS_Store
+
+# Private files
+TODO.md
