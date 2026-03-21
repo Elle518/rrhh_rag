@@ -23,7 +23,7 @@ import requests
 import streamlit as st
 from dotenv import load_dotenv
 
-from src import conf
+from rrhh_rag import conf
 
 logger = logging.getLogger(__name__)
 
