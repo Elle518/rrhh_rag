@@ -37,7 +37,7 @@ Install dependencies:
 For VSCode notebooks extension install:
 
 ```bash
-> pip install ipykernel ipywidgets jupyter
+> pip install ipykernel ipywidgets
 ```
 
 Install Docling for MacOS macOS x86_64:
@@ -53,6 +53,14 @@ For other platforms:
 ```bash
 > pip install docling
 ```
+
+Install the project package in editable mode:
+
+```bash
+> pip install -e .
+```
+
+You may need to rerun this command after making changes to the project `pyproject.toml` file.
 
 ## Using Git Hooks
 
@@ -115,3 +123,43 @@ To create this folder structure, you can run the following command:
 ```bash
 > python src/utils.py
 ```
+
+## Generate application data
+
+1. Extract text from the raw PDF files and save them in the interm folder:
+
+    ```bash
+    > python -m scripts.docling_extract_clean \
+        --input-dir data/raw \
+        --output-dir data/interim/docling/raw \
+        --export-markdown
+    ```
+
+2. Create chunks of the extracted text and save them in the processed folder:
+
+    ```bash
+    > python -m scripts.docling_chunk_jsons \
+            --input-dir data/interim/docling/raw \
+            --output-dir data/processed/chunks \
+            --write-merged
+    ```
+
+3. Create embeddings for the chunks and save them in the qdrant vector database:
+
+    ```bash
+    > python -m scripts.ingest_chunks_to_qdrant
+    ```
+
+## Launch the app
+
+1. Start the FastAPI backend (app/api.py)
+
+    ```bash
+    > uvicorn app.api:app --reload --host 0.0.0.0 --port 8000
+    ```
+
+2. Run this Streamlit app
+
+    ```bash
+    > streamlit run app/streamlit_app.py
+    ```
