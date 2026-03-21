@@ -53,7 +53,7 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling_core.types.doc import ContentLayer, DocItemLabel, DoclingDocument
 from tqdm.auto import tqdm
 
-from src.utils.logging_utils import setup_logging
+from rrhh_rag.utils.logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +255,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    """Main entry point."""
     args = parse_args()
 
     log_dir = Path("logs")
@@ -314,7 +313,6 @@ def main() -> int:
 
             except Exception:
                 failed += 1
-                # logger.exception incluye traceback completo automáticamente
                 logger.exception("Failed processing %s", pdf_path.name)
 
     total_elapsed = time.perf_counter() - total_start
