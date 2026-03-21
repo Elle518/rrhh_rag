@@ -9,4 +9,7 @@ description = "App RAG de RRHH"
 requires-python = ">=3.10"
 
 [tool.setuptools]
-packages = ["src"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
