@@ -285,7 +285,6 @@ def main() -> int:
     json_files = list(iter_json_paths(input_dir, pattern))
     if not json_files:
         logger.error("No files found in %s with pattern '%s'", input_dir, pattern)
-        return 1
 
     # OpenAI tokenizer via tiktoken
     encoding = tiktoken.encoding_for_model(model_name)
@@ -339,8 +338,6 @@ def main() -> int:
     if args.write_merged:
         logger.info("Merged JSONL: %s", merged_path)
 
-    return 0
-
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

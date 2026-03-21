@@ -276,12 +276,10 @@ def main() -> int:
         logger.error(
             "Input directory does not exist or is not a directory: %s", input_dir
         )
-        return 1
 
     pdf_files = sorted(input_dir.glob(args.glob))
     if not pdf_files:
         logger.warning("No PDFs found in %s with pattern %s", input_dir, args.glob)
-        return 0
 
     converter = build_converter()
 
@@ -323,8 +321,6 @@ def main() -> int:
     logger.info("Output dir: %s", output_dir)
     logger.info("Total time: %.2fs", total_elapsed)
 
-    return 0 if failed == 0 else 2
-
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
