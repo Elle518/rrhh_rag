@@ -34,9 +34,11 @@ logger = logging.getLogger(__name__)
 class Settings(BaseSettings):
     llm_workhorse: str
     llm_flagship: str
+    jsonl_path: str
     embeddings: str
     embeddings_dim: int
     vdb_index: str
+    batch_size: int
     retrieve_k: int
     rag_api_url: str
 
