@@ -122,9 +122,6 @@ with st.sidebar:
     st.session_state.top_k = st.slider(
         "Top-K recuperación", 1, 10, st.session_state.top_k
     )
-    st.markdown("---")
-    st.write("**Backend API:**")
-    st.code(API_URL)
 
     if st.session_state.agent_state.get("convenio_label"):
         st.success(f"Convenio activo: {st.session_state.agent_state['convenio_label']}")
