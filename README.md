@@ -158,14 +158,22 @@ To create this folder structure, you can run the following command:
 
 ## Launch the app
 
-1. Start the FastAPI backend (app/api.py)
+From the project root, activate the virtual environment (if not already activated) and run the following commands:
+
+1. Activate the virtual environment:
 
     ```bash
-    > uvicorn app.api:app --reload --host 0.0.0.0 --port 8000
+    > source .venv/bin/activate
     ```
 
-2. Run this Streamlit app
+2. Start the FastAPI backend (app/api.py)
 
     ```bash
-    > streamlit run app/streamlit_app.py
+    > uvicorn ag_app.api:app --reload --host 0.0.0.0 --port 8000
+    ```
+
+3. Run the Streamlit app in another terminal:
+
+    ```bash
+    > streamlit run ag_app/streamlit_app.py
     ```
