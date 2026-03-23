@@ -1,3 +1,10 @@
+"""This module implements the core RAG (Retrieval-Augmented Generation) logic for the application. It provides functions to:
+- Embed user queries using OpenAI embeddings.
+- Search for relevant document chunks in Qdrant based on the query embedding and optional filters.
+- Build a context string from the retrieved chunks to feed into the LLM.
+- Generate an answer from the LLM based on the retrieved context, ensuring that the answer is grounded in the retrieved information and cites the sources properly.
+"""
+
 from __future__ import annotations
 
 import os
@@ -34,6 +41,7 @@ qdrant = QdrantClient(
 
 
 def debug_sample_hits(query: str, top_k: int = 20):
+    """Utility function to debug the raw hits returned by Qdrant for a given query."""
     query_vector = embed_query(query)
 
     resp = qdrant.query_points(
@@ -61,6 +69,7 @@ def debug_sample_hits(query: str, top_k: int = 20):
 
 
 def ensure_qdrant_indexes():
+    """Ensure that the necessary indexes exist in Qdrant for efficient querying."""
     qdrant.create_payload_index(
         collection_name=QDRANT_COLLECTION,
         field_name="source_file",
@@ -69,6 +78,7 @@ def ensure_qdrant_indexes():
 
 
 def embed_query(query: str) -> list[float]:
+    """Embed the user query using OpenAI embeddings."""
     kwargs = {"model": EMBEDDING_MODEL, "input": query}
     if EMBEDDING_DIMENSIONS is not None:
         kwargs["dimensions"] = EMBEDDING_DIMENSIONS
@@ -80,6 +90,7 @@ def build_qdrant_filter(
     source_files: list[str] | None = None,
     doc_id: str | None = None,
 ) -> Filter | None:
+    """Build a Qdrant filter based on the provided criteria."""
     must_conditions = []
 
     if source_files:
@@ -118,6 +129,7 @@ def search_qdrant(
     source_files: list[str] | None = None,
     doc_id: str | None = None,
 ) -> list[dict[str, Any]]:
+    """Search for relevant document chunks in Qdrant based on the query embedding and optional filters."""
     query_vector = embed_query(query)
     query_filter = build_qdrant_filter(
         source_files=source_files,
@@ -156,6 +168,7 @@ def search_qdrant(
 
 
 def build_context_for_llm(hits: list[dict[str, Any]]) -> str:
+    """Build a context string from the retrieved chunks to feed into the LLM."""
     parts = []
     for i, h in enumerate(hits, start=1):
         pages = h.get("page_numbers") or []
@@ -174,7 +187,7 @@ def answer_with_grounding(
     top_k: int = TOP_K,
     source_files: list[str] | None = None,
 ) -> dict[str, Any]:
-
+    """Generate an answer from the LLM based on the retrieved context, ensuring that the answer is grounded in the retrieved information and cites the sources properly."""
     debug_sample_hits(query)
 
     hits = search_qdrant(
@@ -240,5 +253,4 @@ def answer_with_grounding(
             }
         )
 
-    return {"answer": answer, "grounding": grounding}
     return {"answer": answer, "grounding": grounding}

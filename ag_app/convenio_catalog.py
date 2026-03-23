@@ -1,3 +1,5 @@
+"""Catalog of labor agreements with their sectors, provinces and associated archives."""
+
 from __future__ import annotations
 
 import re
@@ -52,7 +54,6 @@ CATALOGO_CONVENIOS: list[dict[str, Any]] = [
         "provincia": "sevilla",
         "source_files": [
             "establecimientosanitariosevilla.json",
-            # solo añade esta si realmente existe en Qdrant:
             "prorrogaconveniosanitariosevilla.json",
         ],
         "aliases": [
@@ -118,6 +119,8 @@ PROVINCIAS = sorted({c["provincia"] for c in CATALOGO_CONVENIOS if c.get("provin
 
 
 def normalize_text(text: str) -> str:
+    """Normalize text for better matching: lowercase,
+    remove accents, non-alphanumeric chars, and extra spaces."""
     text = text.lower().strip()
     text = unicodedata.normalize("NFD", text)
     text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
@@ -127,6 +130,7 @@ def normalize_text(text: str) -> str:
 
 
 def extract_provincia(text: str) -> str | None:
+    """Extract provincia from text by looking for known provincia names."""
     norm = normalize_text(text)
     for provincia in PROVINCIAS:
         if provincia in norm:
@@ -135,6 +139,7 @@ def extract_provincia(text: str) -> str | None:
 
 
 def convenio_label(convenio: dict[str, Any]) -> str:
+    """Generate a human-readable label for a convenio, e.g. 'Contact Center - Madrid'."""
     provincia = convenio.get("provincia")
     if provincia:
         return f"{convenio['sector'].title()} - {provincia.title()}"
@@ -142,6 +147,7 @@ def convenio_label(convenio: dict[str, Any]) -> str:
 
 
 def get_convenio_by_id(convenio_id: str) -> dict[str, Any] | None:
+    """Find a convenio in the catalog by its ID."""
     for c in CATALOGO_CONVENIOS:
         if c["id"] == convenio_id:
             return c
@@ -152,6 +158,7 @@ def find_by_sector_and_provincia(
     sector: str | None,
     provincia: str | None,
 ) -> dict[str, Any] | None:
+    """Find a convenio by matching sector and provincia. If provincia is None, match any convenio with the given sector."""
     if not sector:
         return None
 
@@ -169,6 +176,7 @@ def find_by_sector_and_provincia(
 
 
 def get_sector_matches(text: str) -> list[dict[str, Any]]:
+    """Find convenios whose sector or aliases match the text."""
     norm = normalize_text(text)
     found: list[dict[str, Any]] = []
 
@@ -185,6 +193,7 @@ def get_sector_matches(text: str) -> list[dict[str, Any]]:
 
 
 def fuzzy_candidates(text: str, limit: int = 3) -> list[dict[str, Any]]:
+    """Find convenios whose sector or aliases have a fuzzy match with the text."""
     norm = normalize_text(text)
     scored: list[tuple[int, dict[str, Any]]] = []
 
@@ -202,7 +211,7 @@ def fuzzy_candidates(text: str, limit: int = 3) -> list[dict[str, Any]]:
 
     scored.sort(key=lambda x: x[0], reverse=True)
     filtered = [c for score, c in scored if score >= 55]
-    # deduplicado por id
+    # deduplication by convenio ID, keeping the highest scored ones
     result = []
     seen = set()
     for c in filtered:
@@ -215,6 +224,15 @@ def fuzzy_candidates(text: str, limit: int = 3) -> list[dict[str, Any]]:
 
 
 def resolve_convenio_from_text(user_text: str) -> dict[str, Any]:
+    """Given a user input text, try to resolve it to a specific convenio in the catalog, following these steps:
+    1. Extract provincia from the text.
+    2. Look for sector matches in the text.
+    3. If exactly one sector match is found, check if it has a provincia. If it does, return it as exact match.
+    4. If it has no provincia, but we detected a provincia in the text, try to find a convenio with that sector and provincia.
+    5. If multiple sector matches are found, return them as candidates.
+    6. If no sector matches are found, perform a fuzzy search and return candidates if any.
+    7. If no matches at all, return not found.
+    """
     provincia = extract_provincia(user_text)
     sector_matches = get_sector_matches(user_text)
 

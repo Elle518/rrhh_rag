@@ -1,7 +1,10 @@
-#!/usr/bin/env python3
-"""
-1. uvicorn ag_app.api:app --reload --host 0.0.0.0 --port 8000
-2. streamlit run ag_app/streamlit_app.py
+"""Streamlit app for the RAG-based convenio chatbot. This app provides a user interface to interact with the backend API, send user queries, and display the assistant's responses along with the retrieved grounding information. The app also manages the chat history and agent state across interactions, allowing for a conversational experience.
+
+To run the app, use the following commands in separate terminals:
+
+1. > uvicorn ag_app.api:app --reload --host 0.0.0.0 --port 8000
+
+2. > streamlit run ag_app/streamlit_app.py
 """
 
 from __future__ import annotations
@@ -59,6 +62,7 @@ if "agent_state" not in st.session_state:
 
 
 def render_grounding(grounding: list[dict]):
+    """Render the grounding information retrieved from the backend in a user-friendly format. Each grounding item includes metadata such as citation ID, score, source file, and the text of the retrieved chunk. The grounding is displayed in an expandable section to keep the chat interface clean."""
     if not grounding:
         return
     with st.expander("Ver grounding / fuentes", expanded=False):
@@ -76,6 +80,7 @@ def render_grounding(grounding: list[dict]):
 
 
 def send_message(user_text: str):
+    """Send a user message to the backend API and handle the response, updating the chat history and agent state accordingly."""
     st.session_state.messages.append({"role": "user", "content": user_text})
 
     try:
@@ -144,7 +149,7 @@ with st.sidebar:
         st.rerun()
 
 
-# bootstrap de bienvenida
+# Welcome message
 if not st.session_state.messages:
     st.session_state.messages.append(
         {
@@ -173,7 +178,7 @@ for msg in st.session_state.messages:
         if msg["role"] == "assistant":
             render_grounding(msg.get("grounding", []))
 
-# sugerencias del agente
+# Agent options
 options = st.session_state.agent_state.get("options") or []
 awaiting_field = st.session_state.agent_state.get("awaiting_field")
 

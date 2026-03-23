@@ -1,3 +1,5 @@
+"""Conversational agent for inquiries about labor agreements."""
+
 from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
@@ -16,6 +18,8 @@ from ag_app.rag_backend import answer_with_grounding
 
 
 class AgentState(TypedDict, total=False):
+    """State of the conversational agent."""
+
     messages: list[dict[str, str]]
     last_user_message: str
     answer: str
@@ -43,16 +47,19 @@ class AgentState(TypedDict, total=False):
 
 
 def _yes(text: str) -> bool:
+    """Determine if the text represents an affirmative answer."""
     t = text.strip().lower()
     return t in {"si", "sí", "s", "vale", "ok", "claro", "por supuesto", "yes"}
 
 
 def _no(text: str) -> bool:
+    """Determine if the text represents a negative answer."""
     t = text.strip().lower()
     return t in {"no", "n", "nop", "ninguno"}
 
 
 def _same_convenio(text: str) -> bool:
+    """Determine if the text indicates the same convenio."""
     t = text.strip().lower()
     return t in {
         "el mismo",
@@ -66,6 +73,7 @@ def _same_convenio(text: str) -> bool:
 
 
 def _new_convenio(text: str) -> bool:
+    """Determine if the text indicates a new convenio."""
     t = text.strip().lower()
     return t in {
         "otro",
@@ -79,6 +87,8 @@ def _new_convenio(text: str) -> bool:
 
 
 def welcome_node(state: AgentState) -> AgentState:
+    """Initial node that welcomes the user and asks
+    about the convenio to consult."""
     if state.get("messages"):
         return state
 
@@ -97,6 +107,7 @@ def welcome_node(state: AgentState) -> AgentState:
 
 
 def parse_node(state: AgentState) -> AgentState:
+    """Node that parses the last user message to extract relevant information."""
     messages = state.get("messages", [])
     if not messages:
         return state
@@ -114,6 +125,8 @@ def parse_node(state: AgentState) -> AgentState:
 
 
 def router_node(state: AgentState) -> AgentState:
+    """Node that routes the conversation flow
+    based on the current state."""
     awaiting = state.get("awaiting_field")
     user_text = state.get("last_user_message", "")
 
@@ -309,7 +322,7 @@ def router_node(state: AgentState) -> AgentState:
     if awaiting == "consulta":
         return state
 
-    # Caso principal: resolver convenio a partir de texto libre
+    # Main case: resolve convenio from free text
     result = resolve_convenio_from_text(user_text)
     status = result["status"]
 
@@ -389,6 +402,8 @@ def router_node(state: AgentState) -> AgentState:
 
 
 def answer_node(state: AgentState) -> AgentState:
+    """Node that generates an answer to the user's query
+    based on the selected convenio."""
     if state.get("awaiting_field") != "consulta":
         return state
 
@@ -396,7 +411,7 @@ def answer_node(state: AgentState) -> AgentState:
     user_question = state.get("last_user_message", "")
     top_k = state.get("top_k", 5)
 
-    # Si aún no hay convenio seleccionado, no respondemos
+    # If no agreement has been selected yet, we will not respond.
     if not convenio_id:
         return state
 
@@ -431,6 +446,8 @@ def answer_node(state: AgentState) -> AgentState:
 
 
 def route_after_parse(state: AgentState) -> str:
+    """Routing function that decides the next node
+    after parsing the user message."""
     awaiting = state.get("awaiting_field")
 
     if awaiting == "consulta":
@@ -440,6 +457,7 @@ def route_after_parse(state: AgentState) -> str:
 
 
 def build_graph():
+    """Builds the state graph for the conversational agent."""
     graph = StateGraph(AgentState)
     graph.add_node("welcome", welcome_node)
     graph.add_node("parse", parse_node)
@@ -470,6 +488,7 @@ def run_agent_turn(
     top_k: int = 5,
     current_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Runs a turn of the conversational agent with the given user messages and current state."""
     initial_state: AgentState = {
         "messages": messages,
         "top_k": top_k,
