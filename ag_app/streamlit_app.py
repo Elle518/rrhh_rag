@@ -112,7 +112,7 @@ def send_message(user_text: str):
 
 
 with st.sidebar:
-    st.image(LOGO_PATH, use_container_width=True)
+    st.image(LOGO_PATH, width="content")
     st.header("Configuración")
     st.session_state.top_k = st.slider(
         "Top-K recuperación", 1, 10, st.session_state.top_k
