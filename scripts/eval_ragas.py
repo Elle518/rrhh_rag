@@ -60,7 +60,10 @@ Usage example:
         --out-csv output/eval/qa_ragas_results.csv \
         --out-json output/eval/qa_ragas_summary.json \
         --verbose
-
+    # Most frequent usage:
+    python -m scripts.eval_ragas \
+        --top-k 3 \
+        --verbose
 Notes:
     - This script evaluates the pure RAG path, not the conversational agent loop
     - It uses the same OpenAI models configured in the project backend
@@ -71,6 +74,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -86,13 +90,23 @@ from ragas.metrics.collections import (
     Faithfulness,
 )
 
-from ag_app.convenio_catalog import CATALOGO_CONVENIOS
-from ag_app.rag_backend import CHAT_MODEL, EMBEDDING_MODEL, answer_with_grounding
+from ag_app.rag_backend import answer_with_grounding
+from rrhh_rag import conf
 
-CATALOG_BY_ID = {c["id"]: c for c in CATALOGO_CONVENIOS}
+logger = logging.getLogger(__name__)
+
+# Configuration
+try:
+    conf_settings = conf.load(file="settings.yaml")
+except Exception as e:
+    logger.error("Failed to load conf files: %s", e)
+
+CHAT_MODEL = conf_settings.llm_workhorse
+EMBEDDING_MODEL = conf_settings.embeddings
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Evaluación RAG con RAGAS")
     parser.add_argument(
         "--csv",
@@ -145,6 +159,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def build_metrics(strictness: int) -> dict[str, Any]:
+    """Build RAGAS metrics instances with asynchronous OpenAI clients."""
     async_client = AsyncOpenAI()
 
     evaluator_llm = llm_factory(
@@ -170,60 +185,8 @@ def build_metrics(strictness: int) -> dict[str, Any]:
     }
 
 
-def normalize_source(source_value: Any) -> list[str]:
-    """
-    Normaliza la columna `source` del CSV para convertirla en `source_files`
-    compatibles con el filtro real del backend.
-
-    Casos soportados:
-    - "contactcenter" -> ["contactcenter.json"]
-    - "contactcenter.json" -> ["contactcenter.json"]
-    - "establecimientosanitarios_madrid" -> source_files del catálogo
-    - '["a.json", "b.json"]' -> ["a.json", "b.json"]
-    """
-    if source_value is None or (
-        isinstance(source_value, float) and pd.isna(source_value)
-    ):
-        return []
-
-    if isinstance(source_value, list):
-        raw_values = [str(x).strip() for x in source_value if str(x).strip()]
-    else:
-        text = str(source_value).strip()
-        if not text:
-            return []
-
-        if text.startswith("[") and text.endswith("]"):
-            try:
-                parsed = json.loads(text)
-                if isinstance(parsed, list):
-                    raw_values = [str(x).strip() for x in parsed if str(x).strip()]
-                else:
-                    raw_values = [text]
-            except json.JSONDecodeError:
-                raw_values = [text]
-        else:
-            raw_values = [text]
-
-    resolved: list[str] = []
-
-    for value in raw_values:
-        convenio = CATALOG_BY_ID.get(value)
-        if convenio:
-            resolved.extend(convenio["source_files"])
-            continue
-
-        if Path(value).suffix:
-            resolved.append(value)
-            continue
-
-        resolved.append(f"{value}.json")
-
-    # deduplicar preservando orden
-    return list(dict.fromkeys(resolved))
-
-
 def build_retrieved_contexts(rag_result: dict[str, Any]) -> list[str]:
+    """Extract retrieved contexts from RAG result grounding."""
     contexts: list[str] = []
     for g in rag_result.get("grounding", []):
         text = (g.get("text") or "").strip()
@@ -233,6 +196,7 @@ def build_retrieved_contexts(rag_result: dict[str, Any]) -> list[str]:
 
 
 def cite_found_in_contexts(cite: str, retrieved_contexts: list[str]) -> bool:
+    """Check if the gold cite is found in any of the retrieved contexts."""
     if not isinstance(cite, str):
         return False
 
@@ -249,6 +213,7 @@ def cite_found_in_contexts(cite: str, retrieved_contexts: list[str]) -> bool:
 
 
 def metric_value(result: Any) -> float | None:
+    """Extract numeric value from metric result, handling None and non-numeric cases."""
     if result is None:
         return None
     value = getattr(result, "value", result)
@@ -264,38 +229,16 @@ async def evaluate_row(
     semaphore: asyncio.Semaphore,
     verbose: bool = False,
 ) -> dict[str, Any]:
+    """Evaluate a single row of the CSV, running the RAG pipeline and computing metrics."""
     async with semaphore:
         code = row.get("code")
         question = str(row.get("question", "")).strip()
         reference = str(row.get("answer", "")).strip()
         difficulty = row.get("difficulty")
         source_raw = row.get("source")
-        # source_files = normalize_source(source_raw)
         source_files = [source_raw + ".json"]
         gold_cite = str(row.get("cite", "")).strip()
         print(f"SOURCE_RAW={source_raw} -> SOURCE_FILES={source_files}")
-
-        # if not question:
-        #     return {
-        #         "code": code,
-        #         "question": question,
-        #         "answer": reference,
-        #         "difficulty": difficulty,
-        #         "source": source_raw,
-        #         "source_files_resolved": [],
-        #         "cite": gold_cite,
-        #         "response": "",
-        #         "retrieved_contexts": [],
-        #         "n_contexts": 0,
-        #         "retrieval_failed": True,
-        #         "gold_cite_found": False,
-        #         "faithfulness": None,
-        #         "response_relevance": None,
-        #         "context_precision": None,
-        #         "context_recall": None,
-        #         "correctness": None,
-        #         "error": "La fila no tiene question",
-        #     }
 
         try:
             if verbose:
@@ -405,6 +348,7 @@ async def evaluate_row(
 
 
 def safe_mean(df: pd.DataFrame, col: str) -> float | None:
+    """Calculate mean of a column, safely handling non-numeric and missing data."""
     if df.empty or col not in df.columns:
         return None
     series = pd.to_numeric(df[col], errors="coerce").dropna()
@@ -416,6 +360,7 @@ def safe_mean(df: pd.DataFrame, col: str) -> float | None:
 def build_summary(
     results_df: pd.DataFrame, top_k: int, concurrency: int
 ) -> dict[str, Any]:
+    """Build aggregated summary statistics from the results DataFrame."""
     ok_df = results_df[results_df["error"].isna()].copy()
     with_context_df = ok_df[ok_df["n_contexts"] > 0].copy()
     without_context_df = ok_df[ok_df["n_contexts"] == 0].copy()
@@ -462,6 +407,7 @@ def build_summary(
         "by_difficulty": {},
     }
 
+    # Breakdown by difficulty
     if not ok_df.empty:
         for difficulty, group in ok_df.groupby("difficulty", dropna=False):
             key = str(difficulty)
@@ -491,6 +437,7 @@ def build_summary(
 
 
 async def main_async(args: argparse.Namespace) -> None:
+    """Main asynchronous function to run the evaluation."""
     csv_path = Path(args.csv)
     out_csv = Path(args.out_csv)
     out_json = Path(args.out_json)
@@ -529,7 +476,7 @@ async def main_async(args: argparse.Namespace) -> None:
 
     out_csv.parent.mkdir(parents=True, exist_ok=True)
 
-    # Serializar listas para CSV
+    # Convert list/dict columns to JSON strings for CSV output
     results_df_for_csv = results_df.copy()
     for col in ["retrieved_contexts", "source_files_resolved"]:
         results_df_for_csv[col] = results_df_for_csv[col].apply(
@@ -549,11 +496,12 @@ async def main_async(args: argparse.Namespace) -> None:
         encoding="utf-8",
     )
 
-    print("\n=== RESUMEN ===")
+    print("\n=== SUMMARY ===")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
-    print(f"\nResultados guardados en: {out_csv}")
-    print(f"Resumen guardado en: {out_json}")
+    print(f"\nResults saved to: {out_csv}")
+    print(f"Summary saved to: {out_json}")
 
+    # Generate Excel summary with multiple sheets
     summary_general_df = pd.DataFrame(
         [
             {
@@ -622,7 +570,7 @@ async def main_async(args: argparse.Namespace) -> None:
         metrics_df.to_excel(writer, sheet_name="metrics", index=False)
         by_difficulty_df.to_excel(writer, sheet_name="by_difficulty", index=False)
 
-    print(f"Resumen Excel guardado en: {out_xlsx}")
+    print(f"Summary Excel saved to: {out_xlsx}")
 
 
 def main() -> None:
