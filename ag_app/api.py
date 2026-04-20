@@ -6,7 +6,9 @@
 
 from __future__ import annotations
 
+import time
 import traceback
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -14,6 +16,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from ag_app.agent import run_agent_turn
+from ag_app.conversation_logger import log_chat_turn
 from ag_app.rag_backend import ensure_qdrant_indexes
 
 
@@ -86,13 +89,17 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    """Endpoint to send a message to the agent and receive a response with the grounding and UI status."""
-    try:
-        session = SESSION_STORE.setdefault(
-            req.session_id,
-            {"messages": [], "state": {}},
-        )
+    start = time.perf_counter()
+    turn_id = str(uuid.uuid4())
 
+    session = SESSION_STORE.setdefault(
+        req.session_id,
+        {"messages": [], "state": {}},
+    )
+
+    state_before = dict(session.get("state", {}))
+
+    try:
         session["messages"].append({"role": "user", "content": req.message})
 
         result = run_agent_turn(
@@ -104,9 +111,43 @@ def chat(req: ChatRequest):
         session["messages"].append({"role": "assistant", "content": result["answer"]})
         session["state"] = result["state"]
 
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+
+        log_chat_turn(
+            {
+                "event_type": "chat_turn",
+                "turn_id": turn_id,
+                "session_id": req.session_id,
+                "top_k": req.top_k,
+                "user_message": req.message,
+                "assistant_answer": result["answer"],
+                "grounding": result.get("grounding", []),
+                "state_before": state_before,
+                "state_after": result.get("state", {}),
+                "latency_ms": latency_ms,
+                "message_count": len(session["messages"]),
+            }
+        )
+
         return result
 
     except Exception as e:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+
+        log_chat_turn(
+            {
+                "event_type": "chat_turn_error",
+                "turn_id": turn_id,
+                "session_id": req.session_id,
+                "top_k": req.top_k,
+                "user_message": req.message,
+                "state_before": state_before,
+                "latency_ms": latency_ms,
+                "error": str(e),
+                "traceback": traceback.format_exc(),
+            }
+        )
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
