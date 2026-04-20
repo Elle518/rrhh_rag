@@ -44,7 +44,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "top_k" not in st.session_state:
-    st.session_state.top_k = 5
+    st.session_state.top_k = 3
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
@@ -70,8 +70,6 @@ def render_grounding(grounding: list[dict]):
             meta = (
                 f"**[{g['citation_id']}]** score={g['score']:.4f}  \n"
                 f"doc_id: `{g.get('doc_id')}`  \n"
-                f"source_file: `{g.get('source_file')}`  \n"
-                f"chunk_id: `{g.get('chunk_id')}`  \n"
                 f"pages: `{g.get('page_numbers', [])}`"
             )
             st.markdown(meta)
@@ -119,9 +117,6 @@ def send_message(user_text: str):
 with st.sidebar:
     st.image(LOGO_PATH, width="content")
     st.header("Configuración")
-    st.session_state.top_k = st.slider(
-        "Top-K recuperación", 1, 10, st.session_state.top_k
-    )
 
     if st.session_state.agent_state.get("convenio_label"):
         st.success(f"Convenio activo: {st.session_state.agent_state['convenio_label']}")
